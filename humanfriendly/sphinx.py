@@ -64,38 +64,35 @@ def deprecation_note_callback(app, what, name, obj, options, lines):
     The parameters expected by this function are those defined for Sphinx event
     callback functions (i.e. I'm not going to document them here :-).
     """
-    if isinstance(obj, types.ModuleType) and lines:
-        aliases = get_aliases(obj.__name__)
-        if aliases:
+    if not isinstance(obj, types.ModuleType) or not lines:
+        return
+    if aliases := get_aliases(obj.__name__):
             # Convert the existing docstring to a string and remove leading
             # indentation from that string, otherwise our generated content
             # would have to match the existing indentation in order not to
             # break docstring parsing (because indentation is significant
             # in the reStructuredText format).
-            blocks = [dedent("\n".join(lines))]
-            # Use an admonition to group the deprecated aliases together and
-            # to distinguish them from the autodoc entries that follow.
-            blocks.append(".. note:: Deprecated names")
-            indent = " " * 3
-            if len(aliases) == 1:
-                explanation = """
+        blocks = [dedent("\n".join(lines)), ".. note:: Deprecated names"]
+        indent = " " * 3
+        if len(aliases) == 1:
+            explanation = """
                     The following alias exists to preserve backwards compatibility,
                     however a :exc:`~exceptions.DeprecationWarning` is triggered
                     when it is accessed, because this alias will be removed
                     in a future release.
                 """
-            else:
-                explanation = """
+        else:
+            explanation = """
                     The following aliases exist to preserve backwards compatibility,
                     however a :exc:`~exceptions.DeprecationWarning` is triggered
                     when they are accessed, because these aliases will be
                     removed in a future release.
                 """
-            blocks.append(indent + compact(explanation))
-            for name, target in aliases.items():
-                blocks.append(format("%s.. data:: %s", indent, name))
-                blocks.append(format("%sAlias for :obj:`%s`.", indent * 2, target))
-            update_lines(lines, "\n\n".join(blocks))
+        blocks.append(indent + compact(explanation))
+        for name, target in aliases.items():
+            blocks.append(format("%s.. data:: %s", indent, name))
+            blocks.append(format("%sAlias for :obj:`%s`.", indent * 2, target))
+        update_lines(lines, "\n\n".join(blocks))
 
 
 def enable_deprecation_notes(app):
@@ -182,7 +179,7 @@ def man_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
     text. In the generated documentation the ``:man:`` text is omitted and a
     hyperlink pointing to the Debian Linux manual pages is emitted.
     """
-    man_url = "https://manpages.debian.org/%s" % text
+    man_url = f"https://manpages.debian.org/{text}"
     reference = docutils.nodes.reference(rawtext, docutils.utils.unescape(text), refuri=man_url, **options)
     return [reference], []
 
@@ -205,7 +202,7 @@ def pypi_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
     text. In the generated documentation the ``:pypi:`` text is omitted and a
     hyperlink pointing to the Python Package Index is emitted.
     """
-    pypi_url = "https://pypi.org/project/%s/" % text
+    pypi_url = f"https://pypi.org/project/{text}/"
     reference = docutils.nodes.reference(rawtext, docutils.utils.unescape(text), refuri=pypi_url, **options)
     return [reference], []
 
@@ -306,10 +303,12 @@ def usage_message_callback(app, what, name, obj, options, lines):
     callback functions (i.e. I'm not going to document them here :-).
     """
     # Make sure we only modify the docstrings of modules.
-    if isinstance(obj, types.ModuleType) and lines:
-        # Make sure we only modify docstrings containing a usage message.
-        if lines[0].startswith(USAGE_MARKER):
-            # Convert the usage message to reStructuredText.
-            text = render_usage("\n".join(lines))
-            # Fill up the buffer with our modified docstring.
-            update_lines(lines, text)
+    if (
+        isinstance(obj, types.ModuleType)
+        and lines
+        and lines[0].startswith(USAGE_MARKER)
+    ):
+        # Convert the usage message to reStructuredText.
+        text = render_usage("\n".join(lines))
+        # Fill up the buffer with our modified docstring.
+        update_lines(lines, text)

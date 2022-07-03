@@ -92,7 +92,7 @@ def prompt_for_confirmation(question, default=None, padding=True):
     prompt_text = prepare_prompt_text(question, bold=True)
     # Append the valid replies (and default reply) to the prompt text.
     hint = "[Y/n]" if default else "[y/N]" if default is not None else "[y/n]"
-    prompt_text += " %s " % prepare_prompt_text(hint, color=HIGHLIGHT_COLOR)
+    prompt_text += f" {prepare_prompt_text(hint, color=HIGHLIGHT_COLOR)} "
     # Loop until a valid response is given.
     logger.debug("Requesting interactive confirmation from terminal: %r", ansi_strip(prompt_text).rstrip())
     for attempt in retry_limit():
@@ -300,13 +300,7 @@ def prompt_for_input(question, default=None, padding=True, strip=True):
             # the exception to the caller.
             logger.warning("Interactive prompt was interrupted by exception!", exc_info=True)
             raise
-    if default is not None and not reply:
-        # If the reply is empty and `default' is None we don't want to return
-        # None because it's nicer for callers to be able to assume that the
-        # return value is always a string.
-        return default
-    else:
-        return reply.strip()
+    return default if default is not None and not reply else reply.strip()
 
 
 def prepare_prompt_text(prompt_text, **options):

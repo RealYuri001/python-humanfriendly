@@ -258,7 +258,7 @@ def render_usage(text):
                 ('\n\n'.join(render_paragraph(p, meta_variables) for p in split_paragraphs(description))).rstrip(),
             ])
         csv_lines = csv_buffer.getvalue().splitlines()
-        output.append('\n'.join('   %s' % line for line in csv_lines))
+        output.append('\n'.join(f'   {line}' for line in csv_lines))
     logger.debug("Rendered output: %s", output)
     return '\n\n'.join(trim_empty_lines(o) for o in output)
 
@@ -305,10 +305,10 @@ def render_paragraph(paragraph, meta_variables):
     # remainder of the line as pre-formatted text.
     if paragraph.startswith(USAGE_MARKER):
         tokens = paragraph.split()
-        return "**%s** `%s`" % (tokens[0], ' '.join(tokens[1:]))
+        return f"**{tokens[0]}** `{' '.join(tokens[1:])}`"
     # Reformat the "Supported options:" line to highlight it in bold.
     if paragraph == 'Supported options:':
-        return "**%s**" % paragraph
+        return f"**{paragraph}**"
     # Reformat shell transcripts into code blocks.
     if re.match(r'^\s*\$\s+\S', paragraph):
         # Split the paragraph into lines.
@@ -316,7 +316,7 @@ def render_paragraph(paragraph, meta_variables):
         # Check if the paragraph is already indented.
         if not paragraph[0].isspace():
             # If the paragraph isn't already indented we'll indent it now.
-            lines = ['  %s' % line for line in lines]
+            lines = [f'  {line}' for line in lines]
         lines.insert(0, '.. code-block:: sh')
         lines.insert(1, '')
         return "\n".join(lines)
@@ -330,9 +330,9 @@ def render_paragraph(paragraph, meta_variables):
         paragraph = paragraph.replace('*', r'\*')
         # Reformat inline tokens.
         paragraph = replace_special_tokens(
-            paragraph, meta_variables,
-            lambda token: '``%s``' % token,
+            paragraph, meta_variables, lambda token: f'``{token}``'
         )
+
     return paragraph
 
 

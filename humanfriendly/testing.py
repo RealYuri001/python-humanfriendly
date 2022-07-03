@@ -225,7 +225,7 @@ def skip_on_raise(*exc_types):
                 return function(*args, **kw)
             except exc_types as e:
                 logger.debug("Translating exception to unittest.SkipTest ..", exc_info=True)
-                raise unittest.SkipTest("skipping test because %s was raised" % type(e))
+                raise unittest.SkipTest(f"skipping test because {type(e)} was raised")
         return wrapper
     return decorator
 
@@ -517,7 +517,10 @@ class MockedProgram(CustomSearchPath):
                   been added to ``$PATH`` (a string).
         """
         directory = super(MockedProgram, self).__enter__()
-        self.program_signal_file = os.path.join(directory, 'program-was-run-%s' % random_string(10))
+        self.program_signal_file = os.path.join(
+            directory, f'program-was-run-{random_string(10)}'
+        )
+
         pathname = os.path.join(directory, self.program_name)
         with open(pathname, 'w') as handle:
             handle.write('#!/bin/sh\n')

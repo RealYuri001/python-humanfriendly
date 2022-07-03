@@ -49,10 +49,13 @@ def get_install_requires():
         if sys.version_info.major == 2:
             install_requires.append('monotonic')
         if sys.platform == 'win32':
-            # For details about these two conditional requirements please
-            # see https://github.com/xolox/python-humanfriendly/pull/45.
-            install_requires.append('pyreadline ; python_version < "3.8"')
-            install_requires.append('pyreadline3 ; python_version >= "3.8"')
+            install_requires.extend(
+                (
+                    'pyreadline ; python_version < "3.8"',
+                    'pyreadline3 ; python_version >= "3.8"',
+                )
+            )
+
     return sorted(install_requires)
 
 

@@ -176,7 +176,10 @@ def main():
 def run_command(command_line):
     """Run an external command and show a spinner while the command is running."""
     timer = Timer()
-    spinner_label = "Waiting for command: %s" % " ".join(map(pipes.quote, command_line))
+    spinner_label = (
+        f'Waiting for command: {" ".join(map(pipes.quote, command_line))}'
+    )
+
     with Spinner(label=spinner_label, timer=timer) as spinner:
         process = subprocess.Popen(command_line)
         while True:
@@ -250,7 +253,7 @@ def demonstrate_ansi_formatting():
         ]
         if color_type != 'background':
             intensities.insert(0, ('faint', dict(faint=True)))
-        output('\n%s' % ansi_wrap('%s:' % color_label, bold=True))
+        output('\n%s' % ansi_wrap(f'{color_label}:', bold=True))
         output(format_smart_table([
             [color_name] + [
                 ansi_wrap(
@@ -273,11 +276,14 @@ def demonstrate_256_colors(i, j, group=None):
     # Generate the label.
     label = '256 color mode'
     if group:
-        label += ' (%s)' % group
-    output('\n' + ansi_wrap('%s:' % label, bold=True))
+        label += f' ({group})'
+    output('\n' + ansi_wrap(f'{label}:', bold=True))
     # Generate a simple rendering of the colors in the requested range and
     # check if it will fit on a single line (given the terminal's width).
-    single_line = ''.join(' ' + ansi_wrap(str(n), color=n) for n in range(i, j + 1))
+    single_line = ''.join(
+        f' {ansi_wrap(str(n), color=n)}' for n in range(i, j + 1)
+    )
+
     lines, columns = find_terminal_size()
     if columns >= len(ansi_strip(single_line)):
         output(single_line)

@@ -103,17 +103,15 @@ def coerce_boolean(value):
     :raises: :exc:`exceptions.ValueError` when the value is a string but
              cannot be coerced with certainty.
     """
-    if is_string(value):
-        normalized = value.strip().lower()
-        if normalized in ('1', 'yes', 'true', 'on'):
-            return True
-        elif normalized in ('0', 'no', 'false', 'off', ''):
-            return False
-        else:
-            msg = "Failed to coerce string to boolean! (%r)"
-            raise ValueError(format(msg, value))
-    else:
+    if not is_string(value):
         return bool(value)
+    normalized = value.strip().lower()
+    if normalized in ('1', 'yes', 'true', 'on'):
+        return True
+    elif normalized in ('0', 'no', 'false', 'off', ''):
+        return False
+    else:
+        raise ValueError(format("Failed to coerce string to boolean! (%r)", value))
 
 
 def coerce_pattern(value, flags=0):
@@ -360,11 +358,10 @@ def format_number(number, num_decimals=2):
         parts.append(reversed_digits[:3])
         reversed_digits = reversed_digits[3:]
     formatted_number = ''.join(reversed(','.join(parts)))
-    decimals_to_add = decimal_part[:num_decimals].rstrip('0')
-    if decimals_to_add:
-        formatted_number += '.' + decimals_to_add
+    if decimals_to_add := decimal_part[:num_decimals].rstrip('0'):
+        formatted_number += f'.{decimals_to_add}'
     if negative_sign:
-        formatted_number = '-' + formatted_number
+        formatted_number = f'-{formatted_number}'
     return formatted_number
 
 
@@ -432,35 +429,28 @@ def format_timespan(num_seconds, detailed=False, max_units=3):
     if num_seconds < 60 and not detailed:
         # Fast path.
         return pluralize(round_number(num_seconds), 'second')
-    else:
-        # Slow path.
-        result = []
-        num_seconds = decimal.Decimal(str(num_seconds))
-        relevant_units = list(reversed(time_units[0 if detailed else 3:]))
-        for unit in relevant_units:
-            # Extract the unit count from the remaining time.
-            divider = decimal.Decimal(str(unit['divider']))
-            count = num_seconds / divider
-            num_seconds %= divider
+    # Slow path.
+    result = []
+    num_seconds = decimal.Decimal(str(num_seconds))
+    relevant_units = list(reversed(time_units[0 if detailed else 3:]))
+    for unit in relevant_units:
+        # Extract the unit count from the remaining time.
+        divider = decimal.Decimal(str(unit['divider']))
+        count = num_seconds / divider
+        num_seconds %= divider
             # Round the unit count appropriately.
-            if unit != relevant_units[-1]:
-                # Integer rounding for all but the smallest unit.
-                count = int(count)
-            else:
-                # Floating point rounding for the smallest unit.
-                count = round_number(count)
-            # Only include relevant units in the result.
-            if count not in (0, '0'):
-                result.append(pluralize(count, unit['singular'], unit['plural']))
-        if len(result) == 1:
-            # A single count/unit combination.
-            return result[0]
-        else:
-            if not detailed:
-                # Remove `insignificant' data from the formatted timespan.
-                result = result[:max_units]
-            # Format the timespan in a readable way.
-            return concatenate(result)
+        count = int(count) if unit != relevant_units[-1] else round_number(count)
+        # Only include relevant units in the result.
+        if count not in (0, '0'):
+            result.append(pluralize(count, unit['singular'], unit['plural']))
+    if len(result) == 1:
+        # A single count/unit combination.
+        return result[0]
+    if not detailed:
+        # Remove `insignificant' data from the formatted timespan.
+        result = result[:max_units]
+    # Format the timespan in a readable way.
+    return concatenate(result)
 
 
 def parse_timespan(timespan):
@@ -505,14 +495,18 @@ def parse_timespan(timespan):
 
     def _find_divider(unit):
         normalized_unit = unit.lower()
-        for time_unit in time_units:
-            if (normalized_unit == time_unit['singular'] or 
-                 normalized_unit == time_unit['plural'] or
-                 normalized_unit in time_unit['abbreviations']
-                ):
-                    return time_unit['divider']
-
-        return None
+        return next(
+            (
+                time_unit['divider']
+                for time_unit in time_units
+                if (
+                    normalized_unit == time_unit['singular']
+                    or normalized_unit == time_unit['plural']
+                    or normalized_unit in time_unit['abbreviations']
+                )
+            ),
+            None,
+        )
 
     def _to_seconds(pair):
         """
@@ -607,9 +601,9 @@ def parse_date(datestring):
         if len(tokens) >= 2:
             date_parts = list(map(int, tokens[0].split('-'))) + [1, 1]
             time_parts = list(map(int, tokens[1].split(':'))) + [0, 0, 0]
-            return tuple(date_parts[0:3] + time_parts[0:3])
+            return tuple(date_parts[:3] + time_parts[:3])
         else:
-            year, month, day = (list(map(int, datestring.split('-'))) + [1, 1])[0:3]
+            year, month, day = (list(map(int, datestring.split('-'))) + [1, 1])[:3]
             return (year, month, day, 0, 0, 0)
     except Exception:
         msg = "Invalid date! (expected 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS' but got: %r)"
@@ -640,8 +634,7 @@ def format_path(pathname):
     '~/.vimrc'
     """
     pathname = os.path.abspath(pathname)
-    home = os.environ.get('HOME')
-    if home:
+    if home := os.environ.get('HOME'):
         home = os.path.abspath(home)
         if pathname.startswith(home):
             pathname = os.path.join('~', os.path.relpath(pathname, home))
