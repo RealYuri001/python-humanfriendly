@@ -209,7 +209,7 @@ class Spinner(object):
                 elif self.total and progress:
                     label = "%s: %.2f%%" % (label, progress / (self.total / 100.0))
                 elif self.timer and self.timer.elapsed_time > 2:
-                    label = "%s (%s)" % (label, self.timer.rounded)
+                    label = f"{label} ({self.timer.rounded})"
                 self.stream.write("%s %s %s ..\r" % (ANSI_ERASE_LINE, state, label))
                 self.counter += 1
 

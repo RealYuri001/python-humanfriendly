@@ -21,6 +21,7 @@ enhanced to recognize and support this. For details please refer to the
 .. _Wikipedia article on ANSI escape sequences: http://en.wikipedia.org/wiki/ANSI_escape_code#Sequence_elements
 """
 
+
 # Standard library modules.
 import codecs
 import numbers
@@ -92,16 +93,16 @@ ANSI_CSI = '\x1b['
 ANSI_SGR = 'm'
 """The ANSI "Select Graphic Rendition" sequence (a string)."""
 
-ANSI_ERASE_LINE = '%sK' % ANSI_CSI
+ANSI_ERASE_LINE = f'{ANSI_CSI}K'
 """The ANSI escape sequence to erase the current line (a string)."""
 
-ANSI_RESET = '%s0%s' % (ANSI_CSI, ANSI_SGR)
+ANSI_RESET = f'{ANSI_CSI}0{ANSI_SGR}'
 """The ANSI escape sequence to reset styling (a string)."""
 
-ANSI_HIDE_CURSOR = '%s?25l' % ANSI_CSI
+ANSI_HIDE_CURSOR = f'{ANSI_CSI}?25l'
 """The ANSI escape sequence to hide the text cursor (a string)."""
 
-ANSI_SHOW_CURSOR = '%s?25h' % ANSI_CSI
+ANSI_SHOW_CURSOR = f'{ANSI_CSI}?25h'
 """The ANSI escape sequence to show the text cursor (a string)."""
 
 ANSI_COLOR_CODES = dict(black=0, red=1, green=2, yellow=3, blue=4, magenta=5, cyan=6, white=7)
@@ -156,7 +157,7 @@ def ansi_strip(text, readline_hints=True):
                            used to remove `readline hints`_ from the string.
     :returns: The text without ANSI escape sequences (a string).
     """
-    pattern = '%s.*?%s' % (re.escape(ANSI_CSI), re.escape(ANSI_SGR))
+    pattern = f'{re.escape(ANSI_CSI)}.*?{re.escape(ANSI_SGR)}'
     text = re.sub(pattern, '', text)
     if readline_hints:
         text = readline_strip(text)
@@ -230,8 +231,7 @@ def ansi_style(**kw):
             if len(color_value) != 3:
                 msg = "Invalid color value %r! (expected tuple or list with three numbers)"
                 raise ValueError(msg % color_value)
-            sequences.append(48 if color_type == 'background' else 38)
-            sequences.append(2)
+            sequences.extend((48 if color_type == 'background' else 38, 2))
             sequences.extend(map(int, color_value))
         elif isinstance(color_value, numbers.Number):
             # Numeric values are assumed to be 256 color codes.
@@ -290,8 +290,7 @@ def ansi_wrap(text, **kw):
               - If :func:`ansi_style()` returns an empty string then the text
                 given by the caller is returned unchanged.
     """
-    start_sequence = ansi_style(**kw)
-    if start_sequence:
+    if start_sequence := ansi_style(**kw):
         end_sequence = ANSI_RESET
         if kw.get('readline_hints'):
             end_sequence = readline_wrap(end_sequence)
@@ -589,8 +588,7 @@ def get_pager_command(text=None):
     # Pass some additional options to `less' (to make it more
     # user friendly) without breaking support for other pagers.
     if os.path.basename(command_line[0]) == 'less':
-        command_line.append('--no-init')
-        command_line.append('--quit-if-one-screen')
+        command_line.extend(('--no-init', '--quit-if-one-screen'))
     return command_line
 
 

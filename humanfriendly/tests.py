@@ -179,9 +179,7 @@ class HumanFriendlyTestCase(TestCase):
         rude = CaseInsensitiveKey("PLEASE DON'T SHOUT")
         assert polite == rude
         # Test the __hash__() special method.
-        mapping = {}
-        mapping[polite] = 1
-        mapping[rude] = 2
+        mapping = {polite: 1, rude: 2}
         assert len(mapping) == 1
 
     def test_capture_output(self):
@@ -206,11 +204,10 @@ class HumanFriendlyTestCase(TestCase):
         # Define a helper function that will raise an assertion error on the
         # first call and return a string on the second call.
         def success_helper():
-            if not hasattr(success_helper, 'was_called'):
-                setattr(success_helper, 'was_called', True)
-                assert False
-            else:
+            if hasattr(success_helper, 'was_called'):
                 return 'yes'
+            setattr(success_helper, 'was_called', True)
+            assert False
         assert retry(success_helper) == 'yes'
 
         # Define a helper function that always raises an assertion error.
@@ -224,13 +221,12 @@ class HumanFriendlyTestCase(TestCase):
         # Define a helper function that will return False on the first call and
         # return a number on the second call.
         def success_helper():
-            if not hasattr(success_helper, 'was_called'):
-                # On the first call we return False.
-                setattr(success_helper, 'was_called', True)
-                return False
-            else:
+            if hasattr(success_helper, 'was_called'):
                 # On the second call we return a number.
                 return 42
+            # On the first call we return False.
+            setattr(success_helper, 'was_called', True)
+            return False
         assert retry(success_helper) == 42
         with self.assertRaises(CallableTimedOut):
             retry(lambda: False, timeout=1)
@@ -772,7 +768,7 @@ class HumanFriendlyTestCase(TestCase):
         self.assertEqual(normalize_timestamp(automatic_timer.elapsed_time, 0), '1.00')
         # Test resumable timer.
         resumable_timer = Timer(resumable=True)
-        for i in range(2):
+        for _ in range(2):
             with resumable_timer:
                 time.sleep(1)
         self.assertEqual(normalize_timestamp(resumable_timer.elapsed_time, 0), '2.00')
@@ -969,20 +965,28 @@ class HumanFriendlyTestCase(TestCase):
 
     def test_ansi_style(self):
         """Test :func:`humanfriendly.terminal.ansi_style()`."""
-        assert ansi_style(bold=True) == '%s1%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(faint=True) == '%s2%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(italic=True) == '%s3%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(underline=True) == '%s4%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(inverse=True) == '%s7%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(strike_through=True) == '%s9%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(color='blue') == '%s34%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(background='blue') == '%s44%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(color='blue', bright=True) == '%s94%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(color=214) == '%s38;5;214%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(background=214) == '%s39;5;214%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(color=(0, 0, 0)) == '%s38;2;0;0;0%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(color=(255, 255, 255)) == '%s38;2;255;255;255%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(background=(50, 100, 150)) == '%s48;2;50;100;150%s' % (ANSI_CSI, ANSI_SGR)
+        assert ansi_style(bold=True) == f'{ANSI_CSI}1{ANSI_SGR}'
+        assert ansi_style(faint=True) == f'{ANSI_CSI}2{ANSI_SGR}'
+        assert ansi_style(italic=True) == f'{ANSI_CSI}3{ANSI_SGR}'
+        assert ansi_style(underline=True) == f'{ANSI_CSI}4{ANSI_SGR}'
+        assert ansi_style(inverse=True) == f'{ANSI_CSI}7{ANSI_SGR}'
+        assert ansi_style(strike_through=True) == f'{ANSI_CSI}9{ANSI_SGR}'
+        assert ansi_style(color='blue') == f'{ANSI_CSI}34{ANSI_SGR}'
+        assert ansi_style(background='blue') == f'{ANSI_CSI}44{ANSI_SGR}'
+        assert ansi_style(color='blue', bright=True) == f'{ANSI_CSI}94{ANSI_SGR}'
+        assert ansi_style(color=214) == f'{ANSI_CSI}38;5;214{ANSI_SGR}'
+        assert ansi_style(background=214) == f'{ANSI_CSI}39;5;214{ANSI_SGR}'
+        assert ansi_style(color=(0, 0, 0)) == f'{ANSI_CSI}38;2;0;0;0{ANSI_SGR}'
+        assert (
+            ansi_style(color=(255, 255, 255))
+            == f'{ANSI_CSI}38;2;255;255;255{ANSI_SGR}'
+        )
+
+        assert (
+            ansi_style(background=(50, 100, 150))
+            == f'{ANSI_CSI}48;2;50;100;150{ANSI_SGR}'
+        )
+
         with self.assertRaises(ValueError):
             ansi_style(color='unknown')
 
@@ -1197,7 +1201,7 @@ class HumanFriendlyTestCase(TestCase):
             os.environ['PAGER'] = 'cat'
             # Generate a significant amount of random text spread over multiple
             # lines that we expect to be reported literally on the terminal.
-            random_text = "\n".join(random_string(25) for i in range(50))
+            random_text = "\n".join(random_string(25) for _ in range(50))
             # Run the pager command and validate the output.
             with CaptureOutput() as capturer:
                 show_pager(random_text)
@@ -1229,7 +1233,7 @@ class HumanFriendlyTestCase(TestCase):
                 if pager == 'less':
                     assert all(opt in command_line for opt in options_specific_to_less)
                 else:
-                    assert not any(opt in command_line for opt in options_specific_to_less)
+                    assert all(opt not in command_line for opt in options_specific_to_less)
             finally:
                 if original_pager is not None:
                     # Restore the original $PAGER value.

@@ -226,19 +226,20 @@ class HTMLConverter(HTMLParser):
             if self.stack:
                 self.stack.pop(-1)
             new_style = self.current_style
-            if tag == 'a':
-                if self.urls_match(self.link_text, self.link_url):
-                    # Don't render the URL when it's part of the link text.
-                    self.emit_style(new_style)
-                else:
-                    self.emit_style(new_style)
-                    self.output.write(' (')
-                    self.emit_style(old_style)
-                    self.output.write(self.render_url(self.link_url))
-                    self.emit_style(new_style)
-                    self.output.write(')')
+            if (
+                tag == 'a'
+                and self.urls_match(self.link_text, self.link_url)
+                or tag != 'a'
+            ):
+                # Don't render the URL when it's part of the link text.
+                self.emit_style(new_style)
             else:
                 self.emit_style(new_style)
+                self.output.write(' (')
+                self.emit_style(old_style)
+                self.output.write(self.render_url(self.link_url))
+                self.emit_style(new_style)
+                self.output.write(')')
             if tag in ('code', 'pre'):
                 self.preformatted_text_level -= 1
         if tag in self.BLOCK_TAGS:
@@ -270,18 +271,18 @@ class HTMLConverter(HTMLParser):
             # this is the most intuitive way to present a link in a plain text
             # interface).
             self.link_url = next((v for n, v in attrs if n == 'href'), '')
-        elif tag == 'b' or tag == 'strong':
+        elif tag in ['b', 'strong']:
             self.push_styles(bold=True)
         elif tag == 'br':
             self.output.write('\n')
-        elif tag == 'code' or tag == 'pre':
+        elif tag in ['code', 'pre']:
             self.push_styles(color='yellow')
             self.preformatted_text_level += 1
-        elif tag == 'del' or tag == 's':
+        elif tag in ['del', 's']:
             self.push_styles(strike_through=True)
-        elif tag == 'em' or tag == 'i':
+        elif tag in ['em', 'i']:
             self.push_styles(italic=True)
-        elif tag == 'ins' or tag == 'u':
+        elif tag in ['ins', 'u']:
             self.push_styles(underline=True)
         elif tag == 'span':
             styles = {}
@@ -362,10 +363,9 @@ class HTMLConverter(HTMLParser):
         3. Add the new styles to the stack,
         4. Emit the appropriate ANSI escape sequence to the output stream.
         """
-        prototype = self.current_style
-        if prototype:
+        if prototype := self.current_style:
             new_style = dict(prototype)
-            new_style.update(changes)
+            new_style |= changes
         else:
             new_style = changes
         self.stack.append(new_style)

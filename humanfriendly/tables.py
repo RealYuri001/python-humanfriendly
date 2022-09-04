@@ -178,9 +178,9 @@ def format_pretty_table(data, column_names=None, horizontal_bar='-', vertical_ba
         for column_index, column in enumerate(row):
             padding = ' ' * (widths[column_index] - ansi_width(column))
             if all(numeric_data[column_index]):
-                line.append(' ' + padding + column + ' ')
+                line.append(f' {padding}{column} ')
             else:
-                line.append(' ' + column + padding + ' ')
+                line.append(f' {column}{padding} ')
             line.append(vertical_bar)
         lines.append(u''.join(line))
         if column_names and row_index == 0:
@@ -239,7 +239,7 @@ def format_robust_table(data, column_names):
     bit more (see :data:`.HIGHLIGHT_COLOR`).
     """
     blocks = []
-    column_names = ["%s:" % n for n in normalize_columns(column_names)]
+    column_names = [f"{n}:" for n in normalize_columns(column_names)]
     if terminal_supports_colors():
         column_names = [highlight_column_name(n) for n in column_names]
     # Convert each row into one or more `name: value' lines (one per column)
@@ -250,7 +250,7 @@ def format_robust_table(data, column_names):
             stripped_column = column_text.strip()
             if '\n' not in stripped_column:
                 # Columns without line breaks are formatted inline.
-                lines.append("%s %s" % (column_names[column_index], stripped_column))
+                lines.append(f"{column_names[column_index]} {stripped_column}")
             else:
                 # Columns with line breaks could very well contain indented
                 # lines, so we'll put the column name on a separate line. This
